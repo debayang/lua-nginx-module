@@ -25,10 +25,13 @@ typedef struct {
 } ngx_http_lua_ffi_table_elt_t;
 #endif /* NGX_LUA_NO_FFI_API */
 
+typedef struct {
+    ngx_http_request_t* wr;
+} ngx_http_request_ptr_wrap_t;
 
 /* char whose address we use as the key in Lua vm registry for
  * user code cache table */
-extern char ngx_http_lua_code_cache_key;
+extern int ngx_http_lua_code_cache_key_ref;
 
 
 /* key in Lua vm registry for all the "ngx.ctx" tables */
@@ -37,20 +40,20 @@ extern char ngx_http_lua_code_cache_key;
 
 /* char whose address we use as the key in Lua vm registry for
  * regex cache table  */
-extern char ngx_http_lua_regex_cache_key;
+extern int ngx_http_lua_regex_cache_key_ref;
 
 /* char whose address we use as the key in Lua vm registry for
  * socket connection pool table */
-extern char ngx_http_lua_socket_pool_key;
+extern int ngx_http_lua_socket_pool_key_ref;
 
 /* char whose address we use as the key for the coroutine parent relationship */
 extern char ngx_http_lua_coroutine_parents_key;
 
 /* coroutine anchoring table key in Lua VM registry */
-extern char ngx_http_lua_coroutines_key;
+extern int ngx_http_lua_coroutines_key_ref;
 
 /* key to the metatable for ngx.req.get_headers() and ngx.resp.get_headers() */
-extern char ngx_http_lua_headers_metatable_key;
+extern int ngx_http_lua_headers_metatable_key_ref;
 
 
 #ifndef ngx_str_set
@@ -337,7 +340,8 @@ ngx_http_lua_get_req(lua_State *L)
     ngx_http_request_t    *r;
 
     lua_getglobal(L, ngx_http_lua_req_key);
-    r = lua_touserdata(L, -1);
+    ngx_http_request_ptr_wrap_t *w = (ngx_http_request_ptr_wrap_t*) lua_touserdata(L, -1);
+    r = w->wr;
     lua_pop(L, 1);
 
     return r;
@@ -347,7 +351,8 @@ ngx_http_lua_get_req(lua_State *L)
 static ngx_inline void
 ngx_http_lua_set_req(lua_State *L, ngx_http_request_t *r)
 {
-    lua_pushlightuserdata(L, r);
+    ngx_http_request_ptr_wrap_t* w = (ngx_http_request_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+    w->wr = r;
     lua_setglobal(L, ngx_http_lua_req_key);
 }
 

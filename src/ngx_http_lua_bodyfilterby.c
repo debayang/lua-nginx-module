@@ -31,6 +31,10 @@ static void ngx_http_lua_body_filter_by_lua_env(lua_State *L,
     ngx_http_request_t *r, ngx_chain_t *in);
 static ngx_http_output_body_filter_pt ngx_http_next_body_filter;
 
+/* Wrapper for ngx_chain_t ptr */
+typedef struct {
+    ngx_chain_t  *wr;
+} ngx_chain_ptr_wrap_t;
 
 /* key for the ngx_chain_t *in pointer in the Lua thread */
 #define ngx_http_lua_chain_key  "__ngx_cl"
@@ -54,7 +58,9 @@ ngx_http_lua_body_filter_by_lua_env(lua_State *L, ngx_http_request_t *r,
     /*  set nginx request pointer to current lua thread's globals table */
     ngx_http_lua_set_req(L, r);
 
-    lua_pushlightuserdata(L, in);
+    ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+    w->wr = in;
+
     lua_setglobal(L, ngx_http_lua_chain_key);
 
     /**
@@ -302,7 +308,9 @@ ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     L = ngx_http_lua_get_lua_vm(r, ctx);
 
     lua_getglobal(L, ngx_http_lua_chain_key);
-    out = lua_touserdata(L, -1);
+    ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_touserdata(L, -1);
+    out = w->wr;
+
     lua_pop(L, 1);
 
     if (in == out) {
@@ -364,7 +372,8 @@ ngx_http_lua_body_filter_param_get(lua_State *L)
     }
 
     lua_getglobal(L, ngx_http_lua_chain_key);
-    in = lua_touserdata(L, -1);
+    ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_touserdata(L, -1);
+    in = w->wr;
 
     if (idx == 2) {
         /* asking for the eof argument */
@@ -455,8 +464,10 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
         last = lua_toboolean(L, 3);
 
         lua_getglobal(L, ngx_http_lua_chain_key);
-        in = lua_touserdata(L, -1);
-        lua_pop(L, 1);
+	 ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_touserdata(L, -1);
+	 in = w->wr;
+
+	 lua_pop(L, 1);
 
         if (last) {
             ctx->seen_last_in_filter = 1;
@@ -522,8 +533,10 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
         /* discard the buffers */
 
         lua_getglobal(L, ngx_http_lua_chain_key); /* key val */
-        in = lua_touserdata(L, -1);
-        lua_pop(L, 1);
+        ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_touserdata(L, -1);
+        in = w->wr;
+
+	 lua_pop(L, 1);
 
         last = 0;
 
@@ -558,7 +571,9 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
     }
 
     lua_getglobal(L, ngx_http_lua_chain_key);
-    in = lua_touserdata(L, -1);
+    ngx_chain_ptr_wrap_t* w = (ngx_chain_ptr_wrap_t*) lua_touserdata(L, -1);
+    in = w->wr;
+
     lua_pop(L, 1);
 
     last = 0;
@@ -625,7 +640,9 @@ done:
         }
     }
 
-    lua_pushlightuserdata(L, cl);
+
+    w = (ngx_chain_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+    w->wr = cl;
     lua_setglobal(L, ngx_http_lua_chain_key);
     return 0;
 }

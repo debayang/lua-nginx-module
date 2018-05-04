@@ -82,6 +82,9 @@ typedef struct {
     uint8_t                  flags;
 } ngx_http_lua_regex_ctx_t;
 
+typedef struct {
+     ngx_http_lua_regex_t* wr;
+} ngx_http_lua_regex_ptr_wrap_t;
 
 static int ngx_http_lua_ngx_re_gmatch_iterator(lua_State *L);
 static ngx_uint_t ngx_http_lua_ngx_re_parse_opts(lua_State *L,
@@ -249,8 +252,7 @@ ngx_http_lua_ngx_re_match_helper(lua_State *L, int wantcaps)
 
         dd("server pool %p", lmcf->pool);
 
-        lua_pushlightuserdata(L, &ngx_http_lua_regex_cache_key);
-        lua_rawget(L, LUA_REGISTRYINDEX); /* table */
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_regex_cache_key_ref);
 
         lua_pushliteral(L, "m");
         lua_pushvalue(L, 2); /* table regex */
@@ -267,7 +269,8 @@ ngx_http_lua_ngx_re_match_helper(lua_State *L, int wantcaps)
            lua_tostring(L, -1));
 
         lua_rawget(L, -3); /* table key re */
-        re = lua_touserdata(L, -1);
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_touserdata(L, -1);
+        re = w->wr;
 
         lua_pop(L, 1); /* table key */
 
@@ -462,7 +465,9 @@ ngx_http_lua_ngx_re_match_helper(lua_State *L, int wantcaps)
         re->captures = cap;
         re->replace = NULL;
 
-        lua_pushlightuserdata(L, re); /* table key value */
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+        w->wr = re;
+
         lua_rawset(L, -3); /* table */
         lua_pop(L, 1);
 
@@ -720,8 +725,7 @@ ngx_http_lua_ngx_re_gmatch(lua_State *L)
 
         dd("server pool %p", lmcf->pool);
 
-        lua_pushlightuserdata(L, &ngx_http_lua_regex_cache_key);
-        lua_rawget(L, LUA_REGISTRYINDEX); /* table */
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_regex_cache_key_ref );
 
         lua_pushliteral(L, "m");
         lua_pushvalue(L, 2); /* table regex */
@@ -738,7 +742,8 @@ ngx_http_lua_ngx_re_gmatch(lua_State *L)
            lua_tostring(L, -1));
 
         lua_rawget(L, -3); /* table key re */
-        re = lua_touserdata(L, -1);
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_touserdata(L, -1);
+        re = w->wr;
 
         lua_pop(L, 1); /* table key */
 
@@ -926,7 +931,9 @@ ngx_http_lua_ngx_re_gmatch(lua_State *L)
         re->captures = cap;
         re->replace = NULL;
 
-        lua_pushlightuserdata(L, re); /* table key value */
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+        w->wr = re;
+
         lua_rawset(L, -3); /* table */
         lua_pop(L, 1);
 
@@ -1388,8 +1395,7 @@ ngx_http_lua_ngx_re_sub_helper(lua_State *L, unsigned global)
 
         dd("server pool %p", lmcf->pool);
 
-        lua_pushlightuserdata(L, &ngx_http_lua_regex_cache_key);
-        lua_rawget(L, LUA_REGISTRYINDEX); /* table */
+	lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_regex_cache_key_ref );
 
         lua_pushliteral(L, "s");
         lua_pushinteger(L, tpl.len);
@@ -1418,7 +1424,8 @@ ngx_http_lua_ngx_re_sub_helper(lua_State *L, unsigned global)
            lua_tostring(L, -1));
 
         lua_rawget(L, -3); /* table key re */
-        re = lua_touserdata(L, -1);
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_touserdata(L, -1);
+        re = w->wr;
 
         lua_pop(L, 1); /* table key */
 
@@ -1663,7 +1670,9 @@ ngx_http_lua_ngx_re_sub_helper(lua_State *L, unsigned global)
         re->captures = cap;
         re->replace = ctpl;
 
-        lua_pushlightuserdata(L, re); /* table key value */
+        ngx_http_lua_regex_ptr_wrap_t *w = (ngx_http_lua_regex_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+        w->wr = re;
+
         lua_rawset(L, -3); /* table */
         lua_pop(L, 1);
 

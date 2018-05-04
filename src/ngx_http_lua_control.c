@@ -431,9 +431,7 @@ ngx_http_lua_on_abort(lua_State *L)
     }
 
     ngx_http_lua_coroutine_create_helper(L, r, ctx, &coctx);
-
-    lua_pushlightuserdata(L, &ngx_http_lua_coroutines_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_coroutines_key_ref);
     lua_pushvalue(L, -2);
 
     dd("on_wait thread 1: %p", lua_tothread(L, -1));

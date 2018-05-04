@@ -25,6 +25,9 @@
 #include "ngx_http_lua_shdict.h"
 #include "ngx_http_lua_util.h"
 
+typedef struct{
+   ngx_http_variable_value_t *wr;
+} ngx_http_variable_value_wrap_ptr_t;
 
 static void ngx_http_lua_set_by_lua_env(lua_State *L, ngx_http_request_t *r,
     size_t nargs, ngx_http_variable_value_t *args);
@@ -150,7 +153,8 @@ ngx_http_lua_setby_param_get(lua_State *L)
 
     /*  get args from globals */
     lua_getglobal(L, ngx_http_lua_args_key);
-    v = lua_touserdata(L, -1);
+    ngx_http_variable_value_wrap_ptr_t* w = (ngx_http_variable_value_wrap_ptr_t*) lua_touserdata(L, -1);
+    v = w->wr;
 
     if (idx < 0 || idx > n - 1) {
         lua_pushnil(L);
@@ -183,8 +187,9 @@ ngx_http_lua_set_by_lua_env(lua_State *L, ngx_http_request_t *r, size_t nargs,
 
     lua_pushinteger(L, nargs);
     lua_setglobal(L, ngx_http_lua_nargs_key);
+    ngx_http_variable_value_wrap_ptr_t* w = (ngx_http_variable_value_wrap_ptr_t*) lua_newuserdata (L, sizeof(void*));
+    w->wr = args;
 
-    lua_pushlightuserdata(L, args);
     lua_setglobal(L, ngx_http_lua_args_key);
 
     /**

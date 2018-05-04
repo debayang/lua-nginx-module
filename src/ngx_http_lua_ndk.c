@@ -23,6 +23,9 @@ static int ngx_http_lua_ndk_set_var_get(lua_State *L);
 static int ngx_http_lua_ndk_set_var_set(lua_State *L);
 static int ngx_http_lua_run_set_var_directive(lua_State *L);
 
+typedef struct {
+   ndk_set_var_value_pt wr;
+} ndk_set_var_value_ptr_wrap_t;
 
 int
 ngx_http_lua_ndk_set_var_get(lua_State *L)
@@ -44,7 +47,8 @@ ngx_http_lua_ndk_set_var_get(lua_State *L)
 
     lua_pushvalue(L, -1); /* table key key */
     lua_pushvalue(L, -1); /* table key key key */
-    lua_pushlightuserdata(L, (void *) func); /* table key key key func */
+    ndk_set_var_value_ptr_wrap_t *w = (ndk_set_var_value_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+    w->wr = (void*) func;
     lua_pushcclosure(L, ngx_http_lua_run_set_var_directive, 2);
         /* table key key closure */
     lua_rawset(L, 1); /* table key */
@@ -94,7 +98,8 @@ ngx_http_lua_run_set_var_directive(lua_State *L)
 
     dd("calling set_var func for %s", p);
 
-    func = (ndk_set_var_value_pt) lua_touserdata(L, lua_upvalueindex(2));
+    ndk_set_var_value_ptr_wrap_t *w = (ndk_set_var_value_ptr_wrap_t*) lua_touserdata(L, lua_upvalueindex(2));
+    func = w->wr;
 
     rc = func(r, &res, &arg);
 

@@ -185,15 +185,15 @@ enum {
     }
 
 
-static char ngx_http_lua_req_socket_metatable_key;
-static char ngx_http_lua_raw_req_socket_metatable_key;
-static char ngx_http_lua_tcp_socket_metatable_key;
-static char ngx_http_lua_upstream_udata_metatable_key;
-static char ngx_http_lua_downstream_udata_metatable_key;
-static char ngx_http_lua_pool_udata_metatable_key;
-static char ngx_http_lua_pattern_udata_metatable_key;
+static int ngx_http_lua_req_socket_metatable_key_ref;
+static int ngx_http_lua_raw_req_socket_metatable_key_ref;
+static int ngx_http_lua_tcp_socket_metatable_key_ref;
+static int ngx_http_lua_upstream_udata_metatable_key_ref;
+static int ngx_http_lua_downstream_udata_metatable_key_ref;
+static int ngx_http_lua_pool_udata_metatable_key_ref;
+static int ngx_http_lua_pattern_udata_metatable_key_ref;
 #if (NGX_HTTP_SSL)
-static char ngx_http_lua_ssl_session_metatable_key;
+static int ngx_http_lua_ssl_session_metatable_key_ref;
 #endif
 
 
@@ -229,8 +229,9 @@ ngx_http_lua_inject_socket_tcp_api(ngx_log_t *log, lua_State *L)
     lua_setfield(L, -2, "socket");
 
     /* {{{req socket object metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_req_socket_metatable_key);
     lua_createtable(L, 0 /* narr */, 5 /* nrec */);
+    ngx_http_lua_req_socket_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_req_socket_metatable_key_ref);
 
     lua_pushcfunction(L, ngx_http_lua_socket_tcp_receive);
     lua_setfield(L, -2, "receive");
@@ -247,12 +248,13 @@ ngx_http_lua_inject_socket_tcp_api(ngx_log_t *log, lua_State *L)
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
 
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
     /* {{{raw req socket object metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_raw_req_socket_metatable_key);
     lua_createtable(L, 0 /* narr */, 6 /* nrec */);
+    ngx_http_lua_raw_req_socket_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_raw_req_socket_metatable_key_ref);
 
     lua_pushcfunction(L, ngx_http_lua_socket_tcp_receive);
     lua_setfield(L, -2, "receive");
@@ -272,12 +274,13 @@ ngx_http_lua_inject_socket_tcp_api(ngx_log_t *log, lua_State *L)
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
 
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
     /* {{{tcp object metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_tcp_socket_metatable_key);
     lua_createtable(L, 0 /* narr */, 12 /* nrec */);
+    ngx_http_lua_tcp_socket_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_tcp_socket_metatable_key_ref);
 
     lua_pushcfunction(L, ngx_http_lua_socket_tcp_connect);
     lua_setfield(L, -2, "connect");
@@ -318,49 +321,57 @@ ngx_http_lua_inject_socket_tcp_api(ngx_log_t *log, lua_State *L)
 
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
     /* {{{upstream userdata metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_upstream_udata_metatable_key);
     lua_createtable(L, 0 /* narr */, 1 /* nrec */); /* metatable */
+    ngx_http_lua_upstream_udata_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_upstream_udata_metatable_key_ref);
+
     lua_pushcfunction(L, ngx_http_lua_socket_tcp_upstream_destroy);
     lua_setfield(L, -2, "__gc");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
+
     /* }}} */
 
     /* {{{downstream userdata metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_downstream_udata_metatable_key);
     lua_createtable(L, 0 /* narr */, 1 /* nrec */); /* metatable */
+    ngx_http_lua_downstream_udata_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_downstream_udata_metatable_key_ref);
+
     lua_pushcfunction(L, ngx_http_lua_socket_downstream_destroy);
     lua_setfield(L, -2, "__gc");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
     /* {{{socket pool userdata metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_pool_udata_metatable_key);
     lua_createtable(L, 0, 1); /* metatable */
+    ngx_http_lua_pool_udata_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_pool_udata_metatable_key_ref);
     lua_pushcfunction(L, ngx_http_lua_socket_shutdown_pool);
     lua_setfield(L, -2, "__gc");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
     /* {{{socket compiled pattern userdata metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_pattern_udata_metatable_key);
     lua_createtable(L, 0 /* narr */, 1 /* nrec */); /* metatable */
+    ngx_http_lua_pattern_udata_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_pattern_udata_metatable_key_ref);
     lua_pushcfunction(L, ngx_http_lua_socket_cleanup_compiled_pattern);
     lua_setfield(L, -2, "__gc");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
 #if (NGX_HTTP_SSL)
 
     /* {{{ssl session userdata metatable */
-    lua_pushlightuserdata(L, &ngx_http_lua_ssl_session_metatable_key);
     lua_createtable(L, 0 /* narr */, 1 /* nrec */); /* metatable */
+    ngx_http_lua_ssl_session_metatable_key_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_ssl_session_metatable_key_ref);
     lua_pushcfunction(L, ngx_http_lua_ssl_free_session);
     lua_setfield(L, -2, "__gc");
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_pop(L, 1);
     /* }}} */
 
 #endif
@@ -404,8 +415,7 @@ ngx_http_lua_socket_tcp(lua_State *L)
                                | NGX_HTTP_LUA_CONTEXT_SSL_SESS_FETCH);
 
     lua_createtable(L, 5 /* narr */, 1 /* nrec */);
-    lua_pushlightuserdata(L, &ngx_http_lua_tcp_socket_metatable_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_tcp_socket_metatable_key_ref);
     lua_setmetatable(L, -2);
 
     dd("top: %d", lua_gettop(L));
@@ -572,8 +582,7 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)
         }
 
 #if 1
-        lua_pushlightuserdata(L, &ngx_http_lua_upstream_udata_metatable_key);
-        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_upstream_udata_metatable_key_ref );
         lua_setmetatable(L, -2);
 #endif
 
@@ -1638,8 +1647,7 @@ ngx_http_lua_ssl_handshake_retval_handler(ngx_http_request_t *r,
                       "lua ssl save session: %p", ssl_session);
 
         /* set up the __gc metamethod */
-        lua_pushlightuserdata(L, &ngx_http_lua_ssl_session_metatable_key);
-        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_ssl_session_metatable_key_ref );
         lua_setmetatable(L, -2);
     }
 
@@ -3775,8 +3783,7 @@ ngx_http_lua_socket_tcp_receiveuntil(lua_State *L)
         return luaL_error(L, "no memory");
     }
 
-    lua_pushlightuserdata(L, &ngx_http_lua_pattern_udata_metatable_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_pattern_udata_metatable_key_ref );
     lua_setmetatable(L, -2);
 
     ngx_memzero(cp, size);
@@ -4430,13 +4437,11 @@ ngx_http_lua_req_socket(lua_State *L)
     lua_createtable(L, 2 /* narr */, 3 /* nrec */); /* the object */
 
     if (raw) {
-        lua_pushlightuserdata(L, &ngx_http_lua_raw_req_socket_metatable_key);
-
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_raw_req_socket_metatable_key_ref );
     } else {
-        lua_pushlightuserdata(L, &ngx_http_lua_req_socket_metatable_key);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_req_socket_metatable_key_ref );
     }
 
-    lua_rawget(L, LUA_REGISTRYINDEX);
     lua_setmetatable(L, -2);
 
     u = lua_newuserdata(L, sizeof(ngx_http_lua_socket_tcp_upstream_t));
@@ -4445,8 +4450,7 @@ ngx_http_lua_req_socket(lua_State *L)
     }
 
 #if 1
-    lua_pushlightuserdata(L, &ngx_http_lua_downstream_udata_metatable_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_downstream_udata_metatable_key_ref);
     lua_setmetatable(L, -2);
 #endif
 
@@ -4596,8 +4600,7 @@ ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)
 
     luaL_checktype(L, 1, LUA_TTABLE);
 
-    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_socket_pool_key_ref);
 
     lua_rawgeti(L, 1, SOCKET_KEY_INDEX);
     key.data = (u_char *) lua_tolstring(L, -1, &key.len);
@@ -4713,8 +4716,7 @@ ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)
             return luaL_error(L, "no memory");
         }
 
-        lua_pushlightuserdata(L, &ngx_http_lua_pool_udata_metatable_key);
-        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_pool_udata_metatable_key_ref);
         lua_setmetatable(L, -2);
 
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
@@ -4865,8 +4867,7 @@ ngx_http_lua_get_keepalive_peer(ngx_http_request_t *r, lua_State *L,
 
     pc = &u->peer;
 
-    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
-    lua_rawget(L, LUA_REGISTRYINDEX); /* table */
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_socket_pool_key_ref);
     lua_pushvalue(L, key_index); /* key */
     lua_rawget(L, -2);
 
@@ -5037,8 +5038,8 @@ ngx_http_lua_socket_free_pool(ngx_log_t *log, ngx_http_lua_socket_pool_t *spool)
 
     L = spool->lua_vm;
 
-    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_socket_pool_key_ref );
+
     lua_pushstring(L, (char *) spool->key);
     lua_pushnil(L);
     lua_rawset(L, -3);
@@ -5496,8 +5497,7 @@ ngx_http_lua_cleanup_conn_pools(lua_State *L)
 {
     ngx_http_lua_socket_pool_t          *spool;
 
-    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
-    lua_rawget(L, LUA_REGISTRYINDEX); /* table */
+    lua_rawgeti(L, LUA_REGISTRYINDEX, ngx_http_lua_socket_pool_key_ref );
 
     lua_pushnil(L);  /* first key */
     while (lua_next(L, -2) != 0) {

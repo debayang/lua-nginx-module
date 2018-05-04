@@ -45,7 +45,9 @@ static int ngx_http_lua_shdict_llen(lua_State *L);
 
 static ngx_inline ngx_shm_zone_t *ngx_http_lua_shdict_get_zone(lua_State *L,
                                                                int index);
-
+typedef struct {
+    ngx_shm_zone_t *wr;
+} ngx_shm_zone_ptr_wrap_t;
 
 #define NGX_HTTP_LUA_SHDICT_ADD         0x0001
 #define NGX_HTTP_LUA_SHDICT_REPLACE     0x0002
@@ -396,7 +398,8 @@ ngx_http_lua_inject_shdict_api(ngx_http_lua_main_conf_t *lmcf, lua_State *L)
 
             lua_createtable(L, 1 /* narr */, 0 /* nrec */);
                 /* table of zone[i] */
-            lua_pushlightuserdata(L, zone[i]); /* shared mt key ud */
+            ngx_shm_zone_ptr_wrap_t* w = (ngx_shm_zone_ptr_wrap_t*) lua_newuserdata (L, sizeof(void*));
+            w->wr = zone[i];
             lua_rawseti(L, -2, SHDICT_USERDATA_INDEX); /* {zone[i]} */
             lua_pushvalue(L, -3); /* shared mt key ud mt */
             lua_setmetatable(L, -2); /* shared mt key ud */
@@ -433,7 +436,8 @@ ngx_http_lua_shdict_get_zone(lua_State *L, int index)
     ngx_shm_zone_t      *zone;
 
     lua_rawgeti(L, index, SHDICT_USERDATA_INDEX);
-    zone = lua_touserdata(L, -1);
+    ngx_shm_zone_ptr_wrap_t *w = (ngx_shm_zone_ptr_wrap_t*) lua_touserdata(L, -1);
+    zone = w->wr;
     lua_pop(L, 1);
 
     return zone;
